@@ -1,0 +1,71 @@
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task --list
+    silent: true
+
+  run:
+    desc: Run the status consumer service
+    cmds:
+      - go run ./cmd/status/...
+
+  build:
+    desc: Build the status consumer binary
+    cmds:
+      - go build -o bin/status ./cmd/status/...
+
+  test:
+    desc: Run all tests (requires Docker)
+    cmds:
+      - go test -tags integration -v ./... -timeout 120s
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  tidy:
+    desc: Tidy go modules
+    cmds:
+      - go mod tidy
+
+  up:
+    desc: Start infrastructure (Kafka/Redpanda + Postgres)
+    cmds:
+      - docker compose up -d
+
+  down:
+    desc: Stop infrastructure
+    cmds:
+      - docker compose down --volumes
+
+  dev:
+    desc: Start infra, create Kafka topic, and seed Redpanda with emails from seed.jsonl
+    cmds:
+      - task: up
+      - task: _wait-redpanda
+      - task: _create-topic
+      - task: _seed
+
+  _seed:
+    internal: true
+    desc: Produce email messages from seed.jsonl to Redpanda
+    dotenv: ['.env']
+    cmds:
+      - docker exec -i redpanda rpk topic produce $KAFKA_TOPIC < seed.jsonl
+
+  _wait-redpanda:
+    internal: true
+    cmds:
+      - |
+        echo "Waiting for Redpanda..."
+        until docker exec redpanda rpk topic list > /dev/null 2>&1; do sleep 2; done
+        echo "Redpanda ready"
+
+  _create-topic:
+    internal: true
+    dotenv: ['.env']
+    cmds:
+      - docker exec redpanda rpk topic create $KAFKA_TOPIC --if-not-exists
