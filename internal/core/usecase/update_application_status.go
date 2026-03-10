@@ -54,11 +54,8 @@ func (u *UpdateApplicationStatus) Execute(ctx context.Context, email *entity.Ema
 			}
 		}
 		if a == nil && newStatus == entity.ApplicationStatusRejected { // rejection email for previously unseen company
-			return true, &entity.Application{
-				Company:    company,
-				RejectedAt: &email.Date,
-				Status:     newStatus,
-			}
+			logger.Info("rejection for unknown company, skipping", "company", company)
+			return false, nil
 		}
 		if a == nil && newStatus == entity.ApplicationStatusAdvanced { // advanced status for previously unseen company
 			logger.Info("advanced status for new company", "company", company)
