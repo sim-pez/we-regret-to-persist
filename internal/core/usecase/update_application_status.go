@@ -44,6 +44,8 @@ func (u *UpdateApplicationStatus) Execute(ctx context.Context, email *entity.Ema
 		return nil
 	}
 
+	logger.Info("classified as job email", "company", company, "status", newStatus)
+
 	updateFn := func(a *entity.Application) (bool, *entity.Application) {
 		if a == nil && newStatus == entity.ApplicationStatusApplied { // new application
 			logger.Info("new application", "company", company)
@@ -54,8 +56,12 @@ func (u *UpdateApplicationStatus) Execute(ctx context.Context, email *entity.Ema
 			}
 		}
 		if a == nil && newStatus == entity.ApplicationStatusRejected { // rejection email for previously unseen company
-			logger.Info("rejection for unknown company, skipping", "company", company)
-			return false, nil
+			logger.Info("rejection for new company", "company", company)
+			return true, &entity.Application{
+				Company:  company,
+				RejectedAt: &email.Date,
+				Status:   newStatus,
+			}
 		}
 		if a == nil && newStatus == entity.ApplicationStatusAdvanced { // advanced status for previously unseen company
 			logger.Info("advanced status for new company", "company", company)
