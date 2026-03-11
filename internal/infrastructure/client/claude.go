@@ -43,7 +43,7 @@ func NewClaudeClient(logger *slog.Logger, apiKey string) *ClaudeClient {
 func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool, error) {
 	userMsg := fmt.Sprintf("From: %s\nSubject: %s\n\n%s", email.From, email.Subject, email.Text)
 
-	msg, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		Model:     anthropic.ModelClaudeHaiku4_5_20251001,
 		MaxTokens: 80,
 		System: []anthropic.TextBlockParam{
@@ -53,7 +53,9 @@ func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string
 			anthropic.NewUserMessage(anthropic.NewTextBlock(userMsg)),
 			anthropic.NewAssistantMessage(anthropic.NewTextBlock("{")),
 		},
-	})
+	}
+
+	msg, err := c.client.Messages.New(ctx, params)
 	if err != nil {
 		return "", "", false, fmt.Errorf("claude api call: %w", err)
 	}
@@ -61,10 +63,27 @@ func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string
 		return "", "", false, fmt.Errorf("claude returned empty response")
 	}
 
+	raw := "{" + msg.Content[0].Text
 	var resp claudeResponse
-	if err := json.Unmarshal([]byte("{"+msg.Content[0].Text), &resp); err != nil {
-		return "", "", false, fmt.Errorf("parse claude response: %w", err)
+	if err := json.Unmarshal([]byte(raw), &resp); err != nil {
+		c.logger.Warn("failed to unmarshal claude response, retrying", "error", err, "response", raw)
+
+		msg, err = c.client.Messages.New(ctx, params)
+		if err != nil {
+			return "", "", false, fmt.Errorf("claude api call (retry): %w", err)
+		}
+		if len(msg.Content) == 0 {
+			c.logger.Warn("claude returned empty response on retry")
+			return "", "", false, nil
+		}
+
+		raw = "{" + msg.Content[0].Text
+		if err := json.Unmarshal([]byte(raw), &resp); err != nil {
+			c.logger.Warn("failed to unmarshal claude response after retry", "error", err, "response", raw)
+			return "", "", false, nil
+		}
 	}
+
 	if !resp.Proceed {
 		return "", "", false, nil
 	}
