@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -11,11 +12,38 @@ import (
 	"github.com/sim-pez/we-regret-to-persist/internal/core/usecase"
 )
 
+// emailDate is a time.Time that can unmarshal both RFC 3339 and RFC 2822 date strings.
+type emailDate struct{ time.Time }
+
+var emailDateFormats = []string{
+	time.RFC3339,
+	time.RFC1123Z,                           // "Mon, 02 Jan 2006 15:04:05 -0700"
+	time.RFC1123,                            // "Mon, 02 Jan 2006 15:04:05 MST"
+	"Mon, 02 Jan 2006 15:04:05 -0700 (MST)", // with tz abbreviation in parens
+	"Mon, _2 Jan 2006 15:04:05 -0700",
+	"Mon, _2 Jan 2006 15:04:05 MST",
+	"Mon, _2 Jan 2006 15:04:05 -0700 (MST)",
+}
+
+func (d *emailDate) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		s = s[1 : len(s)-1]
+	}
+	for _, layout := range emailDateFormats {
+		if t, err := time.Parse(layout, s); err == nil {
+			d.Time = t
+			return nil
+		}
+	}
+	return fmt.Errorf("unrecognised date format: %s", s)
+}
+
 // kafkaEmailEvent mirrors the JSON shape of incoming Kafka messages.
 type kafkaEmailEvent struct {
 	From    string    `json:"from"`
 	Subject string    `json:"subject"`
-	Date    time.Time `json:"date"`
+	Date    emailDate `json:"date"`
 	Text    string    `json:"text"`
 }
 
@@ -55,14 +83,13 @@ func (c *Consumer) Run(ctx context.Context) error {
 		var event kafkaEmailEvent
 		if err := json.Unmarshal(msg.Value, &event); err != nil {
 			c.logger.Error("unmarshal message", "err", err, "offset", msg.Offset)
-			_ = c.reader.CommitMessages(ctx, msg) // skip poison pill
-			continue
+			return err
 		}
 
 		email := &entity.Email{
 			From:    event.From,
 			Subject: event.Subject,
-			Date:    event.Date,
+			Date:    event.Date.Time,
 			Text:    event.Text,
 		}
 
