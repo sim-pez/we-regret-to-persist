@@ -46,47 +46,7 @@ func (u *UpdateApplicationStatus) Execute(ctx context.Context, email *entity.Ema
 
 	logger.Info("classified as job email", "company", company, "status", newStatus)
 
-	updateFn := func(a *entity.Application) (bool, *entity.Application) {
-		if a == nil && newStatus == entity.ApplicationStatusApplied { // new application
-			logger.Info("new application", "company", company)
-			return true, &entity.Application{
-				Company:   company,
-				AppliedAt: &email.Date,
-				Status:    newStatus,
-			}
-		}
-		if a == nil && newStatus == entity.ApplicationStatusRejected { // rejection email for previously unseen company
-			logger.Info("rejection for new company", "company", company)
-			return true, &entity.Application{
-				Company:  company,
-				RejectedAt: &email.Date,
-				Status:   newStatus,
-			}
-		}
-		if a == nil && newStatus == entity.ApplicationStatusAdvanced { // advanced status for previously unseen company
-			logger.Info("advanced status for new company", "company", company)
-			return true, &entity.Application{
-				Company: company,
-				Status:  newStatus,
-			}
-		}
-		if newStatus == entity.ApplicationStatusRejected { // rejection email for existing application
-			logger.Info("application rejected", "company", company)
-			a.RejectedAt = &email.Date
-			a.Status = newStatus
-			return true, a
-		}
-		if newStatus == entity.ApplicationStatusAdvanced { // advanced status for existing application
-			logger.Info("application advanced", "company", company)
-			a.Status = newStatus
-			return true, a
-		}
-
-		return false, nil
-	}
-
-	err := u.repo.UpsertApplication(ctx, company, updateFn)
-	if err != nil {
+	if err := u.repo.UpsertApplication(ctx, company, buildApplicationUpdateFn(logger, company, email, newStatus)); err != nil {
 		logger.Error("failed to upsert application", "company", company, "err", err)
 		return fmt.Errorf("upsert application: %w", err)
 	}
@@ -94,4 +54,44 @@ func (u *UpdateApplicationStatus) Execute(ctx context.Context, email *entity.Ema
 	logger.Info("application status updated", "company", company, "status", newStatus)
 
 	return nil
+}
+
+func buildApplicationUpdateFn(logger *slog.Logger, company string, email *entity.Email, newStatus entity.ApplicationStatus) func(*entity.Application) (bool, *entity.Application) {
+	return func(a *entity.Application) (bool, *entity.Application) {
+		if a == nil && newStatus == entity.ApplicationStatusApplied {
+			logger.Info("new application", "company", company)
+			return true, &entity.Application{
+				Company:   company,
+				AppliedAt: &email.Date,
+				Status:    newStatus,
+			}
+		}
+		if a == nil && newStatus == entity.ApplicationStatusRejected {
+			logger.Info("rejection for new company", "company", company)
+			return true, &entity.Application{
+				Company:    company,
+				RejectedAt: &email.Date,
+				Status:     newStatus,
+			}
+		}
+		if a == nil && newStatus == entity.ApplicationStatusAdvanced {
+			logger.Info("advanced status for new company", "company", company)
+			return true, &entity.Application{
+				Company: company,
+				Status:  newStatus,
+			}
+		}
+		if newStatus == entity.ApplicationStatusRejected {
+			logger.Info("application rejected", "company", company)
+			a.RejectedAt = &email.Date
+			a.Status = newStatus
+			return true, a
+		}
+		if newStatus == entity.ApplicationStatusAdvanced {
+			logger.Info("application advanced", "company", company)
+			a.Status = newStatus
+			return true, a
+		}
+		return false, nil
+	}
 }

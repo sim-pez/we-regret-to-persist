@@ -17,7 +17,6 @@ const (
 	columnID         = "id"
 	columnCompany    = "company"
 	columnAppliedAt  = "applied_at"
-	columnUpdatedAt  = "updated_at"
 	columnRejectedAt = "rejected_at"
 	columnStatus     = "status"
 )
@@ -45,16 +44,15 @@ func (p *PostgresqlRepository) UpsertApplication(ctx context.Context, company st
 	if err != nil {
 		return fmt.Errorf("cannot start transaction: %w", err)
 	}
-	defer func() {
-		err = finishTransaction(err, tx)
-	}()
 
 	applicationList, err := p.getApplication(tx, company)
 	if err != nil {
+		_ = tx.Rollback()
 		return fmt.Errorf("cannot get application: %w", err)
 	}
 
 	if len(applicationList) > 1 {
+		_ = tx.Rollback()
 		return fmt.Errorf("multiple applications found for company: %s", company)
 	}
 
@@ -66,6 +64,7 @@ func (p *PostgresqlRepository) UpsertApplication(ctx context.Context, company st
 
 	proceed, updated := updateFn(existing)
 	if !proceed {
+		_ = tx.Rollback()
 		return nil
 	}
 
@@ -75,9 +74,13 @@ func (p *PostgresqlRepository) UpsertApplication(ctx context.Context, company st
 		err = p.updateApplication(ctx, tx, applicationList[0].ID, company, updated)
 	}
 	if err != nil {
+		_ = tx.Rollback()
 		return fmt.Errorf("cannot upsert application: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("cannot commit transaction: %w", err)
+	}
 	return nil
 }
 
