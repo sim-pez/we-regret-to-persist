@@ -13,7 +13,7 @@ type Repository interface {
 }
 
 type CompanyAndStatusExtractor interface {
-	Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool)
+	Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool, error)
 }
 
 type UpdateApplicationStatus struct {
@@ -34,7 +34,10 @@ func (u *UpdateApplicationStatus) Execute(ctx context.Context, email *entity.Ema
 
 	logger := u.logger.With("subject", email.Subject, "from", email.From)
 
-	company, newStatus, proceed := u.getCompanyAndStatus.Execute(ctx, email)
+	company, newStatus, proceed, err := u.getCompanyAndStatus.Execute(ctx, email)
+	if err != nil {
+		return fmt.Errorf("extract company and status: %w", err)
+	}
 	if !proceed {
 		logger.Info("irrelevant email, skipping")
 		return nil

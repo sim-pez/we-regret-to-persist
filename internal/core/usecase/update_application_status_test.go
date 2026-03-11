@@ -18,8 +18,8 @@ type mockExtractor struct {
 	proceed bool
 }
 
-func (m *mockExtractor) Execute(_ context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool) {
-	return m.company, m.status, m.proceed
+func (m *mockExtractor) Execute(_ context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool, error) {
+	return m.company, m.status, m.proceed, nil
 }
 
 // mockRepository implements Repository

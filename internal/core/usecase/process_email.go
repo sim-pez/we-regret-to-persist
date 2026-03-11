@@ -27,7 +27,10 @@ func NewProcessEmail(logger *slog.Logger, repo Repository, wordCount WordCount, 
 func (p *ProcessEmail) Execute(ctx context.Context, email *entity.Email) error {
 	logger := p.logger.With("subject", email.Subject, "from", email.From)
 
-	company, newStatus, proceed := p.getCompanyAndStatus.Execute(ctx, email)
+	company, newStatus, proceed, err := p.getCompanyAndStatus.Execute(ctx, email)
+	if err != nil {
+		return fmt.Errorf("extract company and status: %w", err)
+	}
 	if !proceed {
 		logger.Info("irrelevant email, skipping")
 		return nil
