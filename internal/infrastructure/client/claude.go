@@ -13,9 +13,14 @@ import (
 	"github.com/sim-pez/we-regret-to-persist/internal/core/entity"
 )
 
-const systemPrompt = `Analyze emails for job application updates. Reply with JSON only, no other text:
+const systemPrompt = `You are a job application tracker. Analyze emails and reply with JSON only, no other text:
 {"company":"<name>","status":"applied|rejected|advanced","proceed":true|false}
-proceed=false if not a job application email. status: applied=new application, rejected=rejection, advanced=interview/offer/next step.`
+
+Rules:
+- proceed=false only if the email is clearly unrelated to a job application (newsletters, spam, etc.)
+- status=rejected: any email indicating no further progress — "not moving forward", "not a fit", "went with other candidates", "wish you the best in your search", "encourage you to apply in the future"
+- status=applied: confirmation of a submitted application
+- status=advanced: interview invite, offer, assessment, or any next step`
 
 type claudeResponse struct {
 	Company string `json:"company"`

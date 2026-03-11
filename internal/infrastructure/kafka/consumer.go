@@ -108,7 +108,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 			c.logger.Error("commit message", "err", err, "offset", msg.Offset)
 		}
 
-		c.logger.Info("email saved", "from", event.From, "subject", event.Subject, "offset", msg.Offset)
+		c.logger.Info("email processed", "from", event.From, "subject", event.Subject, "offset", msg.Offset)
 	}
 }
 
