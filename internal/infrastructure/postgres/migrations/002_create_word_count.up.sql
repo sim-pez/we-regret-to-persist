@@ -1,0 +1,9 @@
+BEGIN;
+
+CREATE TABLE word_count (
+    word       TEXT PRIMARY KEY,
+    count      BIGINT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+COMMIT;

@@ -9,13 +9,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/config"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sim-pez/we-regret-to-persist/internal/core/usecase"
 	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/client"
+	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/config"
 	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/kafka"
+	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/logger"
 	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/postgres"
 	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/postgres/repository"
-	"github.com/sim-pez/we-regret-to-persist/internal/infrastructure/logger"
 )
 
 func main() {
@@ -48,7 +50,7 @@ func main() {
 
 	repo := repository.NewPostgresqlRepository(db)
 	claudeClient := client.NewClaudeClient(log, cfg.ClaudeAPIKey)
-	uc := usecase.NewUpdateApplicationStatus(log, repo, claudeClient)
+	uc := usecase.NewProcessEmailWithWordCount(log, repo, repo, claudeClient)
 
 	consumer := kafka.NewConsumer(log, cfg.KafkaBroker, cfg.KafkaTopic, cfg.KafkaGroupID, uc)
 	defer func() {
@@ -60,9 +62,14 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	log.Info("starting consumer", "broker", cfg.KafkaBroker, "topic", cfg.KafkaTopic, "group", cfg.KafkaGroupID)
-	if err := consumer.Run(ctx); err != nil {
-		log.Error("consumer", "err", err)
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		log.Info("starting consumer", "broker", cfg.KafkaBroker, "topic", cfg.KafkaTopic, "group", cfg.KafkaGroupID)
+		return consumer.Run(ctx)
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Error("consumer error", "err", err)
 		os.Exit(1)
 	}
 }
