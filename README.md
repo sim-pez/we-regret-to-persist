@@ -7,9 +7,12 @@
 
 An AI-powered job application tracker that automatically processes emails and maintains a database of your application statuses — so you never lose track of the rejections you'd rather forget.
 
+**Live:** https://rejectlytics.simpez.uk/
+
 ## Overview
 
 This service consumes job-related emails from a Kafka topic, uses Claude AI to classify each one, and upserts the result into PostgreSQL. It demonstrates a clean event-driven architecture with a focused use case: turning an inbox full of recruiter noise into a structured, queryable dataset.
+
 
 ## We regret stack
 This is a service in the "We regret" stack, a collection of services that process recruiter emails and maintain a comprehensive job application history.
