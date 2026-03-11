@@ -97,15 +97,22 @@ func TestUpdateApplicationStatus_RejectionUnknownCompany(t *testing.T) {
 	repo := &mockRepository{existingApp: nil}
 	uc := newTestUsecase(ext, repo)
 
-	err := uc.Execute(context.Background(), testEmail())
+	email := testEmail()
+	err := uc.Execute(context.Background(), email)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if repo.capturedProceed {
-		t.Error("expected proceed=false for rejection of unknown company")
+	if !repo.capturedProceed {
+		t.Error("expected proceed=true for rejection of unknown company")
 	}
-	if repo.capturedApp != nil {
-		t.Error("expected nil application for unknown rejection")
+	if repo.capturedApp == nil {
+		t.Fatal("expected non-nil application for unknown rejection")
+	}
+	if repo.capturedApp.Status != entity.ApplicationStatusRejected {
+		t.Errorf("expected status=%q, got %q", entity.ApplicationStatusRejected, repo.capturedApp.Status)
+	}
+	if repo.capturedApp.RejectedAt == nil || !repo.capturedApp.RejectedAt.Equal(email.Date) {
+		t.Error("expected RejectedAt to be set to email date")
 	}
 }
 
