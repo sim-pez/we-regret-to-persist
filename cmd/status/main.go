@@ -50,7 +50,8 @@ func main() {
 
 	repo := repository.NewPostgresqlRepository(db)
 	claudeClient := client.NewClaudeClient(log, cfg.ClaudeAPIKey)
-	uc := usecase.NewProcessEmailWithWordCount(log, repo, repo, claudeClient)
+	wordCount := usecase.NewWordCount(repo)
+	uc := usecase.NewProcessEmail(log, repo, wordCount, claudeClient)
 
 	consumer := kafka.NewConsumer(log, cfg.KafkaBroker, cfg.KafkaTopic, cfg.KafkaGroupID, uc)
 	defer func() {
