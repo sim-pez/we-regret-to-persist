@@ -8,23 +8,23 @@ import (
 	"github.com/sim-pez/we-regret-to-persist/internal/core/entity"
 )
 
-type ProcessEmailWithWordCount struct {
+type ProcessEmail struct {
 	logger              *slog.Logger
 	repo                Repository
-	wordCountRepo       WordCountRepository
+	wordCount           WordCount
 	getCompanyAndStatus CompanyAndStatusExtractor
 }
 
-func NewProcessEmailWithWordCount(logger *slog.Logger, repo Repository, wordCountRepo WordCountRepository, getCompanyAndStatus CompanyAndStatusExtractor) *ProcessEmailWithWordCount {
-	return &ProcessEmailWithWordCount{
+func NewProcessEmail(logger *slog.Logger, repo Repository, wordCount WordCount, getCompanyAndStatus CompanyAndStatusExtractor) *ProcessEmail {
+	return &ProcessEmail{
 		logger:              logger,
 		repo:                repo,
-		wordCountRepo:       wordCountRepo,
+		wordCount:           wordCount,
 		getCompanyAndStatus: getCompanyAndStatus,
 	}
 }
 
-func (p *ProcessEmailWithWordCount) Execute(ctx context.Context, email *entity.Email) error {
+func (p *ProcessEmail) Execute(ctx context.Context, email *entity.Email) error {
 	logger := p.logger.With("subject", email.Subject, "from", email.From)
 
 	company, newStatus, proceed := p.getCompanyAndStatus.Execute(ctx, email)
@@ -42,16 +42,12 @@ func (p *ProcessEmailWithWordCount) Execute(ctx context.Context, email *entity.E
 
 	logger.Info("application status updated", "company", company, "status", newStatus)
 
-	if newStatus == entity.ApplicationStatusRejected {
-		counts := countOccurrences(email.Text)
-		if len(counts) > 0 {
-			if err := p.wordCountRepo.IncrementWordCounts(ctx, counts); err != nil {
-				logger.Error("increment word counts", "err", err)
-				return err
-			}
-			logger.Info("word counts updated", "words_found", len(counts))
-		}
+	if err := p.wordCount.Execute(ctx, logger, email, newStatus); err != nil {
+		logger.Error("failed to update word counts", "company", company, "err", err)
+		return fmt.Errorf("update word counts: %w", err)
 	}
+	
+	logger.Info("word counts updated", "company", company)
 
 	return nil
 }

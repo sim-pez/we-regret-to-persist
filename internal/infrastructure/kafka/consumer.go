@@ -50,12 +50,12 @@ type kafkaEmailEvent struct {
 // Consumer reads email events from a Kafka topic and processes them.
 type Consumer struct {
 	reader  *kafka.Reader
-	usecase usecase.ProcessEmail
+	usecase *usecase.ProcessEmail
 	logger  *slog.Logger
 }
 
 // NewConsumer creates a Consumer with at-least-once delivery semantics (manual commit).
-func NewConsumer(logger *slog.Logger, broker, topic, groupID string, uc usecase.ProcessEmail) *Consumer {
+func NewConsumer(logger *slog.Logger, broker, topic, groupID string, uc *usecase.ProcessEmail) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        []string{broker},
 		Topic:          topic,

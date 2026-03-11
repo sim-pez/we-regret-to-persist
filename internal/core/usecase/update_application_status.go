@@ -8,10 +8,6 @@ import (
 	"github.com/sim-pez/we-regret-to-persist/internal/core/entity"
 )
 
-type ProcessEmail interface {
-	Execute(ctx context.Context, email *entity.Email) error
-}
-
 type Repository interface {
 	UpsertApplication(ctx context.Context, company string, updateFn func(*entity.Application) (bool, *entity.Application)) error
 }
