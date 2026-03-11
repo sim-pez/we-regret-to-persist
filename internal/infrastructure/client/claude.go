@@ -40,7 +40,7 @@ func NewClaudeClient(logger *slog.Logger, apiKey string) *ClaudeClient {
 	}
 }
 
-func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool) {
+func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool, error) {
 	userMsg := fmt.Sprintf("From: %s\nSubject: %s\n\n%s", email.From, email.Subject, email.Text)
 
 	msg, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -54,30 +54,29 @@ func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string
 			anthropic.NewAssistantMessage(anthropic.NewTextBlock("{")),
 		},
 	})
-	if err != nil || len(msg.Content) == 0 {
-		c.logger.Error("claude api call failed", "subject", email.Subject, "err", err)
-		return "", "", false
+	if err != nil {
+		return "", "", false, fmt.Errorf("claude api call: %w", err)
+	}
+	if len(msg.Content) == 0 {
+		return "", "", false, fmt.Errorf("claude returned empty response")
 	}
 
 	var resp claudeResponse
 	if err := json.Unmarshal([]byte("{"+msg.Content[0].Text), &resp); err != nil {
-		c.logger.Error("failed to parse claude response", "subject", email.Subject, "err", err)
-		return "", "", false
+		return "", "", false, fmt.Errorf("parse claude response: %w", err)
 	}
 	if !resp.Proceed {
-		return "", "", false
+		return "", "", false, nil
 	}
 
 	status := entity.ApplicationStatus(resp.Status)
 	if status != entity.ApplicationStatusApplied && status != entity.ApplicationStatusRejected && status != entity.ApplicationStatusAdvanced {
-		c.logger.Error("claude returned invalid status", "subject", email.Subject, "status", resp.Status)
-		return "", "", false
+		return "", "", false, fmt.Errorf("claude returned invalid status: %q", resp.Status)
 	}
 
-	
 	company := normalizeCompany(resp.Company)
 
-	return company, status, true
+	return company, status, true, nil
 }
 
 func normalizeCompany(s string) string {

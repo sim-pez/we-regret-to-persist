@@ -94,14 +94,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		}
 
 		if err := c.usecase.Execute(ctx, email); err != nil {
-			// Transient error — do not commit, message will be retried.
-			c.logger.Error("process email", "err", err, "offset", msg.Offset)
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After(5 * time.Second):
-			}
-			continue
+			return fmt.Errorf("process email at offset %d: %w", msg.Offset, err)
 		}
 
 		if err := c.reader.CommitMessages(ctx, msg); err != nil {
