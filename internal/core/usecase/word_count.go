@@ -10,26 +10,33 @@ import (
 )
 
 var watchedWords = []string{
-	// rejection classics
+	// direct rejection signals
 	"unfortunately", "regret", "unable", "cannot", "decline",
-	"rejected", "unsuccessful", "reconsidering", "withdrawn",
+	"rejected", "unsuccessful", "withdrawn", "disappointing",
+	"however", "although",
 
-	// corporate HR speak
-	"opportunity",
-	"experience", "forward", "culture", "fit", "aligned",
-	"bandwidth", "capacity", "headcount", "pipeline", "requisition",
-	"onboarding", "offboarding", "synergy", "leverage", "deliverable",
-	"reorganization", "restructuring", "pivot", "transition", "change",
-	"passionate", "cultural",
+	// position status
+	"position", "filled", "closed", "paused", "freeze", "hold",
 
-	// soft rejection phrases (word by word)
+	// corporate HR jargon
+	"opportunity", "appreciate", "effort", "experience", "forward",
+	"culture", "fit", "aligned", "bandwidth", "capacity", "headcount",
+	"pipeline", "requisition", "onboarding", "offboarding", "synergy",
+	"leverage", "deliverable", "reorganization", "restructuring", "pivot",
+	"transition", "change", "passionate", "cultural", "constantly",
+	"evolving", "dynamic", "high volume",
+
+	// soft/indirect rejection
 	"pursue", "candidates", "qualifications", "profile", "background",
 	"consider", "competitive", "strong", "talent", "pool",
-	"keep", "future", "openings", "role",
+	"keep", "future", "openings", "role", "reconsidering",
+	"match", "interest", "update",
+	"impressed", "excellent", "outstanding",
 
-	// the hopeful ones
-	"encourage", "again", "stay", "touch",
-	"wish", "best", "success", "endeavors", "journey",
+	// polite send-off
+	"thanks", "follow us", "encourage", "again", "stay", "touch",
+	"wish", "best", "success", "endeavors", "journey", "luck",
+	"connect",
 }
 
 type WordCountRepository interface {
