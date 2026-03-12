@@ -18,7 +18,7 @@ const systemPrompt = `You are a job application tracker. Analyze emails and repl
 
 Rules:
 - proceed=false only if the email is clearly unrelated to a job application (newsletters, spam, etc.)
-- status=rejected: any email indicating no further progress — "not moving forward", "not a fit", "went with other candidates", "wish you the best in your search", "encourage you to apply in the future"
+- status=rejected: any email indicating no further progress, including polite or euphemistic phrasing — "not moving forward", "move forward with other candidates", "decided to move forward with others", "not a fit", "went with other candidates", "wish you the best", "wish you all the best in your job search", "encourage you to apply in the future", "feel free to apply again", "keep your profile on file"
 - status=applied: confirmation of a submitted application
 - status=advanced: interview invite, offer, assessment, or any next step`
 
@@ -44,8 +44,9 @@ func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string
 	userMsg := fmt.Sprintf("From: %s\nSubject: %s\n\n%s", email.From, email.Subject, email.Text)
 
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.ModelClaudeHaiku4_5_20251001,
-		MaxTokens: 80,
+		Model:       anthropic.ModelClaudeHaiku4_5_20251001,
+		MaxTokens:   80,
+		Temperature: anthropic.Float(0),
 		System: []anthropic.TextBlockParam{
 			{Text: systemPrompt},
 		},
