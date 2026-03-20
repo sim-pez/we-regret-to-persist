@@ -18,7 +18,7 @@ const systemPrompt = `You are a job application tracker. Analyze emails and repl
 
 Rules:
 - proceed=false only if the email is clearly unrelated to a job application (newsletters, spam, etc.)
-- status=rejected: any email indicating no further progress, including polite or euphemistic phrasing — "not moving forward", "move forward with other candidates", "decided to move forward with others", "not a fit", "went with other candidates", "wish you the best", "wish you all the best in your job search", "encourage you to apply in the future", "feel free to apply again", "keep your profile on file"
+- status=rejected: any email indicating no further progress. Use semantic understanding, not keyword matching. Rejections are often politely worded — look for the underlying meaning: not selected, process ended, apply again someday. Examples: "not moving forward", "won't be moving forward", "decided to go with other candidates", "not a fit", "went with other candidates", "wish you the best", "wishing you all the best in what comes next", "hope you'll consider applying again", "feel free to apply again", "keep your profile on file", "had to make tough decisions", "encourage you to apply in the future"
 - status=applied: confirmation of a submitted application
 - status=advanced: interview invite, offer, assessment, or any next step`
 
