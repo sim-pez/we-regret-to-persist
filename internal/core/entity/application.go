@@ -5,9 +5,10 @@ import "time"
 type ApplicationStatus string
 
 const (
-	ApplicationStatusApplied  ApplicationStatus = "applied"
-	ApplicationStatusRejected ApplicationStatus = "rejected"
-	ApplicationStatusAdvanced ApplicationStatus = "advanced"
+	ApplicationStatusApplied   ApplicationStatus = "applied"
+	ApplicationStatusRejected  ApplicationStatus = "rejected"
+	ApplicationStatusAdvanced  ApplicationStatus = "advanced"
+	ApplicationStatusUnrelated ApplicationStatus = "unrelated"
 )
 
 type Application struct {

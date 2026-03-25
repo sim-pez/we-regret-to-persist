@@ -14,18 +14,17 @@ import (
 )
 
 const systemPrompt = `You are a job application tracker. Analyze emails and reply with JSON only, no other text:
-{"company":"<name>","status":"applied|rejected|advanced","proceed":true|false}
+{"company":"<name or empty string if unrelated>","status":"applied|rejected|advanced|unrelated"}
 
 Rules:
-- proceed=false only if the email is clearly unrelated to a job application (newsletters, spam, etc.)
-- status=rejected: any email indicating no further progress. Use semantic understanding, not keyword matching. Rejections are often politely worded — look for the underlying meaning: not selected, process ended, apply again someday. Examples: "not moving forward", "won't be moving forward", "decided to go with other candidates", "not a fit", "went with other candidates", "wish you the best", "wishing you all the best in what comes next", "hope you'll consider applying again", "feel free to apply again", "keep your profile on file", "had to make tough decisions", "encourage you to apply in the future"
-- status=applied: confirmation of a submitted application
-- status=advanced: interview invite, offer, assessment, or any next step`
+- status=rejected: the process is over for this role. Rejections are often politely worded — look for the underlying meaning, not keywords. The company is moving forward with other candidates, the position is filled, or they wish you luck in your search.
+- status=applied: confirmation that an application was received or will be reviewed
+- status=advanced: interview invite, offer, assessment, recruiter outreach about a role, or any next step
+- status=unrelated: everything else, including networking emails, recruiter outreach that doesn't reference a specific role, and any ambiguous emails that don't clearly indicate the status of an application`
 
 type claudeResponse struct {
 	Company string `json:"company"`
 	Status  string `json:"status"`
-	Proceed bool   `json:"proceed"`
 }
 
 type ClaudeClient struct {
@@ -40,7 +39,7 @@ func NewClaudeClient(logger *slog.Logger, apiKey string) *ClaudeClient {
 	}
 }
 
-func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool, error) {
+func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, error) {
 	userMsg := fmt.Sprintf("From: %s\nSubject: %s\n\n%s", email.From, email.Subject, email.Text)
 
 	params := anthropic.MessageNewParams{
@@ -58,10 +57,10 @@ func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string
 
 	msg, err := c.client.Messages.New(ctx, params)
 	if err != nil {
-		return "", "", false, fmt.Errorf("claude api call: %w", err)
+		return "", "", fmt.Errorf("claude api call: %w", err)
 	}
 	if len(msg.Content) == 0 {
-		return "", "", false, fmt.Errorf("claude returned empty response")
+		return "", "", fmt.Errorf("claude returned empty response")
 	}
 
 	raw := "{" + msg.Content[0].Text
@@ -71,32 +70,32 @@ func (c *ClaudeClient) Execute(ctx context.Context, email *entity.Email) (string
 
 		msg, err = c.client.Messages.New(ctx, params)
 		if err != nil {
-			return "", "", false, fmt.Errorf("claude api call (retry): %w", err)
+			return "", "", fmt.Errorf("claude api call (retry): %w", err)
 		}
 		if len(msg.Content) == 0 {
 			c.logger.Warn("claude returned empty response on retry")
-			return "", "", false, nil
+			return "", "", fmt.Errorf("claude returned empty response on retry")
 		}
 
 		raw = "{" + msg.Content[0].Text
 		if err := json.Unmarshal([]byte(raw), &resp); err != nil {
 			c.logger.Warn("failed to unmarshal claude response after retry", "error", err, "response", raw)
-			return "", "", false, nil
+			return "", "", fmt.Errorf("failed to unmarshal claude response after retry")
 		}
 	}
 
-	if !resp.Proceed {
-		return "", "", false, nil
-	}
-
 	status := entity.ApplicationStatus(resp.Status)
-	if status != entity.ApplicationStatusApplied && status != entity.ApplicationStatusRejected && status != entity.ApplicationStatusAdvanced {
-		return "", "", false, fmt.Errorf("claude returned invalid status: %q", resp.Status)
+	switch status {
+	case entity.ApplicationStatusApplied, entity.ApplicationStatusRejected,
+		entity.ApplicationStatusAdvanced, entity.ApplicationStatusUnrelated:
+		// ok
+	default:
+		return "", "", fmt.Errorf("unexpected status from claude: %q", status)
 	}
 
 	company := normalizeCompany(resp.Company)
 
-	return company, status, true, nil
+	return company, status, nil
 }
 
 func normalizeCompany(s string) string {

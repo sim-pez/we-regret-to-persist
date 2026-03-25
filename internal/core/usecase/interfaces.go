@@ -13,5 +13,5 @@ type Repository interface {
 }
 
 type CompanyAndStatusExtractor interface {
-	Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, bool, error)
+	Execute(ctx context.Context, email *entity.Email) (string, entity.ApplicationStatus, error)
 }
