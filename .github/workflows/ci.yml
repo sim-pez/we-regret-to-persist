@@ -27,6 +27,8 @@ jobs:
         run: go test ./...
 
       - name: Run integration tests
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
         run: go test -tags integration -timeout 120s ./...
 
   lint:
