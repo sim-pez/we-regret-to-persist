@@ -23,6 +23,10 @@ var emailDateFormats = []string{
 	"Mon, _2 Jan 2006 15:04:05 -0700",
 	"Mon, _2 Jan 2006 15:04:05 MST",
 	"Mon, _2 Jan 2006 15:04:05 -0700 (MST)",
+	"02 Jan 2006 15:04:05 -0700", // no weekday
+	"_2 Jan 2006 15:04:05 -0700",
+	"02 Jan 2006 15:04:05 MST",
+	"_2 Jan 2006 15:04:05 MST",
 }
 
 func (d *emailDate) UnmarshalJSON(b []byte) error {
