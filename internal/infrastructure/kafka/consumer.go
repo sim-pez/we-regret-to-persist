@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/mail"
+	"strings"
 	"time"
 
 	kafka "github.com/segmentio/kafka-go"
@@ -12,18 +14,17 @@ import (
 	"github.com/sim-pez/we-regret-to-persist/internal/core/usecase"
 )
 
-// emailDate is a time.Time that can unmarshal both RFC 3339 and RFC 2822 date strings.
+// emailDate is a time.Time that can unmarshal RFC 5322 / RFC 2822 email date strings.
 type emailDate struct{ time.Time }
 
-var emailDateFormats = []string{
+// fallbackDateFormats are tried when net/mail.ParseDate fails.
+var fallbackDateFormats = []string{
 	time.RFC3339,
-	time.RFC1123Z,                           // "Mon, 02 Jan 2006 15:04:05 -0700"
-	time.RFC1123,                            // "Mon, 02 Jan 2006 15:04:05 MST"
-	"Mon, 02 Jan 2006 15:04:05 -0700 (MST)", // with tz abbreviation in parens
+	time.RFC1123Z, // "Mon, 02 Jan 2006 15:04:05 -0700"
+	time.RFC1123,  // "Mon, 02 Jan 2006 15:04:05 MST"
 	"Mon, _2 Jan 2006 15:04:05 -0700",
 	"Mon, _2 Jan 2006 15:04:05 MST",
-	"Mon, _2 Jan 2006 15:04:05 -0700 (MST)",
-	"02 Jan 2006 15:04:05 -0700", // no weekday
+	"02 Jan 2006 15:04:05 -0700",
 	"_2 Jan 2006 15:04:05 -0700",
 	"02 Jan 2006 15:04:05 MST",
 	"_2 Jan 2006 15:04:05 MST",
@@ -34,8 +35,21 @@ func (d *emailDate) UnmarshalJSON(b []byte) error {
 	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
 		s = s[1 : len(s)-1]
 	}
-	for _, layout := range emailDateFormats {
-		if t, err := time.Parse(layout, s); err == nil {
+
+	// net/mail.ParseDate is a proper RFC 5322 parser and handles parenthetical
+	// timezone comments (e.g. "(GMT+01:00)") natively.
+	if t, err := mail.ParseDate(s); err == nil {
+		d.Time = t
+		return nil
+	}
+
+	// Fallback: strip any trailing parenthetical and try known layouts.
+	stripped := s
+	if before, _, found := strings.Cut(s, " ("); found && strings.HasSuffix(s, ")") {
+		stripped = before
+	}
+	for _, layout := range fallbackDateFormats {
+		if t, err := time.Parse(layout, stripped); err == nil {
 			d.Time = t
 			return nil
 		}
