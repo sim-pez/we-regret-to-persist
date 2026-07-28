@@ -14,7 +14,7 @@ type DBConf struct {
 	PostgresUser     string `required:"true" split_words:"true" mask:"true"`
 	PostgresDB       string `required:"false" split_words:"true" mask:"true"`
 	PostgresPassword string `required:"true" split_words:"true" mask:"true"`
-	ClaudeAPIKey     string `required:"true" split_words:"true" mask:"true"`
+	GeminiAPIKey     string `required:"true" split_words:"true" mask:"true"`
 	KafkaBroker      string `required:"true" split_words:"true" mask:"false"`
 	KafkaTopic       string `required:"true" split_words:"true" mask:"false"`
 	KafkaGroupID     string `required:"true" split_words:"true" mask:"false"`

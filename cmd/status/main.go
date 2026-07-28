@@ -49,9 +49,13 @@ func main() {
 	}()
 
 	repo := repository.NewPostgresqlRepository(db)
-	claudeClient := client.NewClaudeClient(log, cfg.ClaudeAPIKey)
+	geminiClient, err := client.NewGeminiClient(context.Background(), log, cfg.GeminiAPIKey)
+	if err != nil {
+		log.Error("create gemini client", "err", err)
+		os.Exit(1)
+	}
 	wordCount := usecase.NewWordCount(repo)
-	uc := usecase.NewProcessEmail(log, repo, wordCount, claudeClient)
+	uc := usecase.NewProcessEmail(log, repo, wordCount, geminiClient)
 
 	consumer := kafka.NewConsumer(log, cfg.KafkaBroker, cfg.KafkaTopic, cfg.KafkaGroupID, uc)
 	defer func() {

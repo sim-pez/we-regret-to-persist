@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/sim-pez/we-regret-to-persist/actions/workflows/ci.yml/badge.svg)](https://github.com/sim-pez/we-regret-to-persist/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/go-1.24-blue?logo=go)](https://go.dev)
-[![Claude](https://img.shields.io/badge/Claude-Haiku%204.5-blueviolet?logo=anthropic)](https://www.anthropic.com)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash--Lite-blueviolet?logo=googlegemini)](https://ai.google.dev)
 [![Docker](https://img.shields.io/badge/GHCR-ghcr.io%2Fsim--pez%2Fwe--regret--to--persist-blue?logo=docker)](https://github.com/sim-pez/we-regret-to-persist/pkgs/container/we-regret-to-persist)
 
 An AI-powered job application tracker that automatically processes emails and maintains a database of your application statuses — so you never lose track of the rejections you'd rather forget.
@@ -11,7 +11,7 @@ An AI-powered job application tracker that automatically processes emails and ma
 
 ## Overview
 
-This service consumes job-related emails from a Kafka topic, uses Claude AI to classify each one, and upserts the result into PostgreSQL. It demonstrates a clean event-driven architecture with a focused use case: turning an inbox full of recruiter noise into a structured, queryable dataset.
+This service consumes job-related emails from a Kafka topic, uses Gemini AI to classify each one, and upserts the result into PostgreSQL. It demonstrates a clean event-driven architecture with a focused use case: turning an inbox full of recruiter noise into a structured, queryable dataset.
 
 
 ## We regret stack
@@ -29,7 +29,7 @@ The stack is as follows:
 | Layer | Technology |
 |---|---|
 | Language | Go 1.24 |
-| AI | Claude Haiku 4.5 (`anthropic-sdk-go`) |
+| AI | Gemini 2.5 Flash-Lite (`google.golang.org/genai`) |
 | Messaging | Redpanda / Kafka (`segmentio/kafka-go`) |
 | Database | PostgreSQL (`sqlx`, `squirrel`, `golang-migrate`) |
 | Testing | `testify`, `testcontainers-go` |
@@ -39,7 +39,7 @@ The stack is as follows:
 
 - Go 1.24+
 - Docker & Docker Compose
-- An [Anthropic API key](https://console.anthropic.com/)
+- A [Gemini API key](https://aistudio.google.com/apikey)
 - [`task`](https://taskfile.dev) (optional, but recommended)
 
 ## Getting started
@@ -48,7 +48,7 @@ The stack is as follows:
 
 ```bash
 cp .env.example .env
-# Set CLAUDE_API_KEY and Postgres credentials
+# Set GEMINI_API_KEY and Postgres credentials
 ```
 
 **2. Start infrastructure and seed sample emails**
