@@ -39,3 +39,4 @@ dist/
 .claude
 .serena.env.bak-*
 !.env.sops
+.env.bak-*
