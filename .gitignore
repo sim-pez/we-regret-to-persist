@@ -37,4 +37,5 @@ dist/
 *.swp
 *.swo
 .claude
-.serena
+.serena.env.bak-*
+!.env.sops
